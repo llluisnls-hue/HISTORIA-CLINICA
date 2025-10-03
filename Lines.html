@@ -241,129 +241,176 @@ $('limpiarBtn').addEventListener('click',()=>{
   if(confirm('¿Borrar todos los campos?')) document.querySelectorAll('input, textarea').forEach(e=>e.value='');
 });
 
-/* ===== PDF ===== */
-$('pdfBtn').addEventListener('click',()=>{
+<script>
+// ===== PDF (versión corregida con salto de página y flujo continuo) =====
+document.getElementById('pdfBtn').addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({unit:'pt',format:'a4'});
-  const mm = v => v*2.83465;
-  const L = mm(18), R = mm(190), W = mm(210), lineH = 16;
-  let y = mm(18);
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  // Utilidades / márgenes
+  const mm = v => v * 2.83465;
+  const MLEFT = mm(18), MRIGHT = mm(18), MTOP = mm(18), MBOT = mm(20);
+  const PAGE_W = doc.internal.pageSize.getWidth();
+  const PAGE_H = doc.internal.pageSize.getHeight();
+  const CONTENT_W = PAGE_W - MLEFT - MRIGHT;
+  const LINE_H = 16;
+  let y = MTOP;
+
+  // Helpers de escritura con salto de página
+  function newPage() { doc.addPage(); y = MTOP; }
+  function ensureSpace(linesNeeded = 1) {
+    if (y + linesNeeded * LINE_H > PAGE_H - MBOT) newPage();
+  }
+  function writeLine(text, opts = {}) {
+    const maxWidth = opts.maxWidth ?? CONTENT_W;
+    const x = opts.x ?? MLEFT;
+    const font = opts.font ?? ['helvetica', 'normal'];
+    const size = opts.size ?? 11;
+    doc.setFont(font[0], font[1]);
+    doc.setFontSize(size);
+    const wrapped = doc.splitTextToSize(String(text ?? '—'), maxWidth);
+    wrapped.forEach((ln) => {
+      ensureSpace(1);
+      doc.text(ln, x, y);
+      y += LINE_H;
+    });
+  }
+  function writeTitle(text) {
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    ensureSpace(1); doc.text(text, MLEFT, y); y += LINE_H;
+  }
+  function writeKV(label, value) {
+    writeLine(`${label}: ${value ? value : '—'}`);
+  }
+
+  // Toma de valores
+  const $ = id => document.getElementById(id);
+  const val = id => ($(id)?.value || '').trim();
 
   // Encabezado
   doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text('Historia Clínica Oftalmológica', L, y); y += lineH*1.6;
+  doc.text('Historia Clínica Oftalmológica', MLEFT, y); y += LINE_H * 1.6;
 
+  // Ficha / filiación en dos columnas seguras
   doc.setFont('helvetica','normal'); doc.setFontSize(11);
-  const header = [
+  const colW = (CONTENT_W - mm(10)) / 2; // 10 mm separación
+  const colGap = mm(10);
+  let yL = y, yR = y;
+
+  const leftItems = [
     `Paciente: ${val('paciente') || '—'}`,
     `DNI: ${val('dni') || '—'}`,
-    `Fecha: ${val('fecha') || '—'}`,
+    `Fecha: ${val('fecha') || '—'}`
+  ];
+  const rightItems = [
     `Edad: ${val('edad') || '—'}`,
     `Tel: ${val('tel') || '—'}`,
     `Correo: ${val('correo') || '—'}`
   ];
-  header.forEach((t,i)=>{
-    const x = (i<3)?L:R;
-    if(i===3) y -= lineH*3; // sube para columna derecha
-    doc.text(t, x, y);
-    y += lineH;
-    if(i===2) { y = mm(18)+lineH*1.6; } // inicio col derecha
+
+  // escribe columna izquierda
+  leftItems.forEach(t => {
+    const lines = doc.splitTextToSize(t, colW);
+    lines.forEach(ln => {
+      if (yL + LINE_H > PAGE_H - MBOT) { newPage(); yL = y; }
+      doc.text(ln, MLEFT, yL);
+      yL += LINE_H;
+    });
   });
-  y = mm(18) + lineH*6.2;
 
-  // Sección helper
-  const section = (title,content)=>{
-    doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    doc.text(title, L, y); y += lineH;
-    doc.setFont('helvetica','normal'); doc.setFontSize(11);
-    if(Array.isArray(content)){
-      content.forEach(row=>{
-        if(typeof row === 'string'){ doc.text(row || '—', L, y, {maxWidth: mm(175)}); y += lineH; }
-        else{ // label: text
-          doc.text(`${row[0]}: ${row[1] || '—'}`, L, y, {maxWidth: mm(175)}); y += lineH;
-        }
-      });
-    } else {
-      doc.text((content||'—'), L, y, {maxWidth: mm(175)});
-      y += lineH * (1 + Math.ceil((content?.length||1)/95));
-    }
-    y += 6;
-  };
+  // escribe columna derecha
+  rightItems.forEach(t => {
+    const lines = doc.splitTextToSize(t, colW);
+    lines.forEach(ln => {
+      if (yR + LINE_H > PAGE_H - MBOT) { newPage(); yR = y; }
+      doc.text(ln, MLEFT + colW + colGap, yR);
+      yR += LINE_H;
+    });
+  });
 
-  // Antecedentes
-  section('Antecedentes', [
-    ['Personales', val('ant_personales')],
-    ['Oculares',   val('ant_oculares')],
-    ['Familiares', val('ant_familiares')]
-  ]);
+  y = Math.max(yL, yR) + LINE_H * 0.6; // continuar debajo de la mayor
 
-  // Anamnesis
-  section('Anamnesis', [
-    ['Tiempo de enfermedad', val('t_enfermedad')],
-    ['Forma de inicio',      val('forma_inicio')],
-    ['Relato',               val('relato')],
-    ['AV (autorreporte)',    val('av_reporte')],
-    ['Tratamiento actual',   val('tto_actual')]
-  ]);
+  // === Antecedentes ===
+  writeTitle('Antecedentes');
+  writeKV('Personales',  val('ant_personales'));
+  writeKV('Oculares',    val('ant_oculares'));
+  writeKV('Familiares',  val('ant_familiares'));
+  y += 6;
 
-  // Examen físico – Segmento anterior (OD/OI)
-  section('Examen físico – Segmento anterior (OD)', [
-    ['Párpado',        val('sa_parpado_od')],
-    ['Conjuntiva',     val('sa_conj_od')],
-    ['Esclera',        val('sa_esclera_od')],
-    ['Córnea',         val('sa_cornea_od')],
-    ['Cámara anterior',val('sa_ca_od')],
-    ['Iris-Pupila',    val('sa_iris_od')],
-    ['Mov. oculares',  val('sa_mov_od')],
-    ['Cristalino',     val('sa_crist_od')]
-  ]);
-  section('Examen físico – Segmento anterior (OI)', [
-    ['Párpado',        val('sa_parpado_oi')],
-    ['Conjuntiva',     val('sa_conj_oi')],
-    ['Esclera',        val('sa_esclera_oi')],
-    ['Córnea',         val('sa_cornea_oi')],
-    ['Cámara anterior',val('sa_ca_oi')],
-    ['Iris-Pupila',    val('sa_iris_oi')],
-    ['Mov. oculares',  val('sa_mov_oi')],
-    ['Cristalino',     val('sa_crist_oi')]
-  ]);
+  // === Anamnesis ===
+  writeTitle('Anamnesis');
+  writeKV('Tiempo de enfermedad', val('t_enfermedad'));
+  writeKV('Forma de inicio',      val('forma_inicio'));
+  writeKV('Relato',               val('relato'));
+  writeKV('AV (autorreporte)',    val('av_reporte'));
+  writeKV('Tratamiento actual',   val('tto_actual'));
+  y += 6;
 
-  // Examen físico – Segmento posterior (OD/OI)
-  section('Examen físico – Segmento posterior (OD)', [
-    ['Nervio óptico',    val('sp_no_od')],
-    ['Vasos sanguíneos', val('sp_vasos_od')],
-    ['Mácula',           val('sp_macula_od')],
-    ['Retina periférica',val('sp_retina_od')]
-  ]);
-  section('Examen físico – Segmento posterior (OI)', [
-    ['Nervio óptico',    val('sp_no_oi')],
-    ['Vasos sanguíneos', val('sp_vasos_oi')],
-    ['Mácula',           val('sp_macula_oi')],
-    ['Retina periférica',val('sp_retina_oi')]
-  ]);
+  // === Examen físico – Segmento anterior (OD/OI) ===
+  writeTitle('Examen físico – Segmento anterior (OD)');
+  writeKV('Párpado',         val('sa_parpado_od'));
+  writeKV('Conjuntiva',      val('sa_conj_od'));
+  writeKV('Esclera',         val('sa_esclera_od'));
+  writeKV('Córnea',          val('sa_cornea_od'));
+  writeKV('Cámara anterior', val('sa_ca_od'));
+  writeKV('Iris-Pupila',     val('sa_iris_od'));
+  writeKV('Mov. oculares',   val('sa_mov_od'));
+  writeKV('Cristalino',      val('sa_crist_od'));
+  y += 6;
 
-  // Tonometría
-  section('Tonometría', [
-    ['OD (mmHg)', val('tono_od')],
-    ['OI (mmHg)', val('tono_oi')],
-    ['Método',    val('tono_metodo')]
-  ]);
+  writeTitle('Examen físico – Segmento anterior (OI)');
+  writeKV('Párpado',         val('sa_parpado_oi'));
+  writeKV('Conjuntiva',      val('sa_conj_oi'));
+  writeKV('Esclera',         val('sa_esclera_oi'));
+  writeKV('Córnea',          val('sa_cornea_oi'));
+  writeKV('Cámara anterior', val('sa_ca_oi'));
+  writeKV('Iris-Pupila',     val('sa_iris_oi'));
+  writeKV('Mov. oculares',   val('sa_mov_oi'));
+  writeKV('Cristalino',      val('sa_crist_oi'));
+  y += 6;
 
-  // Auxiliares, Dx, Tratamiento, Órdenes
-  section('Exámenes auxiliares a solicitar', val('auxiliares'));
-  section('Diagnóstico', val('diagnostico'));
-  section('Tratamiento', val('tratamiento'));
-  section('Órdenes médicas', val('ordenes'));
+  // === Examen físico – Segmento posterior (OD/OI) ===
+  writeTitle('Examen físico – Segmento posterior (OD)');
+  writeKV('Nervio óptico',     val('sp_no_od'));
+  writeKV('Vasos sanguíneos',  val('sp_vasos_od'));
+  writeKV('Mácula',            val('sp_macula_od'));
+  writeKV('Retina periférica', val('sp_retina_od'));
+  y += 6;
+
+  writeTitle('Examen físico – Segmento posterior (OI)');
+  writeKV('Nervio óptico',     val('sp_no_oi'));
+  writeKV('Vasos sanguíneos',  val('sp_vasos_oi'));
+  writeKV('Mácula',            val('sp_macula_oi'));
+  writeKV('Retina periférica', val('sp_retina_oi'));
+  y += 6;
+
+  // === Tonometría ===
+  writeTitle('Tonometría');
+  writeKV('OD (mmHg)', val('tono_od'));
+  writeKV('OI (mmHg)', val('tono_oi'));
+  writeKV('Método',    val('tono_metodo'));
+  y += 6;
+
+  // === Auxiliares / Dx / Tto / Órdenes ===
+  writeTitle('Exámenes auxiliares a solicitar');
+  writeLine(val('auxiliares'));
+
+  writeTitle('Diagnóstico');
+  writeLine(val('diagnostico'));
+
+  writeTitle('Tratamiento');
+  writeLine(val('tratamiento'));
+
+  writeTitle('Órdenes médicas');
+  writeLine(val('ordenes'));
 
   // Firma
-  const yLine = Math.min(mm(780), y + lineH*2);
-  doc.line(L, yLine, mm(100), yLine);
-  doc.text('Firma / Sello', L, yLine + 14);
+  ensureSpace(4);
+  const yLine = y + LINE_H * 1.5;
+  doc.line( MLEFT, yLine, MLEFT + mm(80), yLine );
+  doc.text('Firma / Sello', MLEFT, yLine + 14);
 
-  const nombre = (val('paciente')||'historia').replace(/\s+/g,'_');
+  const nombre = (val('paciente') || 'historia').replace(/\s+/g,'_');
   doc.save(`HC_${nombre}.pdf`);
 });
 </script>
-</body>
-</html>
-
