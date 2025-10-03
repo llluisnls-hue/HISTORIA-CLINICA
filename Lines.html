@@ -386,11 +386,12 @@ $('pdfBtn').addEventListener('click',()=>{
   writeTitle('Órdenes médicas');
   writeLine(val('ordenes'));
 
-  // Firma
-  ensureSpace(4);
-  const yLine = y + LINE_H*1.5;
-  doc.line( MLEFT, yLine, MLEFT + mm(80), yLine );
-  doc.text('Firma / Sello', MLEFT, yLine + 14);
+// Firma (más abajo)
+ensureSpace(8); // reserva más espacio en blanco
+const yLine = y + LINE_H*4; // baja 4 renglones extra
+doc.line( MLEFT, yLine, MLEFT + mm(80), yLine );
+doc.text('Firma / Sello', MLEFT, yLine + 18);
+
 
   const nombre = (val('paciente') || 'historia').replace(/\s+/g,'_');
   doc.save(`HC_${nombre}.pdf`);
@@ -398,3 +399,4 @@ $('pdfBtn').addEventListener('click',()=>{
 </script>
 </body>
 </html>
+
