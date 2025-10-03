@@ -8,32 +8,26 @@
 <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <style>
   :root{--bg:#ffffff;--fg:#111111;--mut:#6b7280;--line:#e5e7eb;--card:#f9fafb}
-  *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  header{position:sticky;top:0;z-index:10;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .btn{padding:8px 12px;border:1px solid #9ca3af;background:#f3f4f6;border-radius:8px;cursor:pointer}
-  .btn:active{transform:translateY(1px)}
-  .pill{padding:8px 12px;border:1px solid #9ca3af;border-radius:999px;background:#eef2ff;cursor:pointer}
+  header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn,.pill{padding:8px 12px;border-radius:8px;cursor:pointer;border:1px solid #9ca3af}
+  .btn{background:#f3f4f6}
+  .pill{background:#eef2ff}
   main{max-width:1100px;margin:0 auto;padding:14px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
   h2{margin:0 0 6px}
   .grid{display:grid;gap:10px}
   .cols2{grid-template-columns:repeat(2,1fr)}
   .cols3{grid-template-columns:repeat(3,1fr)}
-  label{font-size:12px;color:var(--mut);display:block;margin-bottom:4px}
-  input,textarea,select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--fg)}
-  textarea{min-height:70px;resize:vertical}
-  .section-title{font-weight:700;margin-top:4px}
+  label{font-size:12px;color:var(--mut)}
+  input,textarea{width:100%;padding:6px;border:1px solid var(--line);border-radius:6px}
+  textarea{min-height:60px}
   .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .pair .box{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
-  .pair h3{margin:0 0 6px;font-size:14px}
-  .mut{color:var(--mut);font-size:12px}
-  .row{display:flex;gap:8px;flex-wrap:wrap}
-  .right{margin-left:auto}
+  table{width:100%;border-collapse:collapse;margin-top:8px}
+  th,td{border:1px solid #ccc;padding:6px;font-size:12px}
   .dark{--bg:#0f1115;--fg:#f5f7fb;--mut:#a3a7b0;--line:#2a2e37;--card:#171a21}
-  .dark input,.dark textarea,.dark select{background:#0f1115;color:#f5f7fb;border-color:#2a2e37}
-  .dark .btn{background:#171a21;border-color:#2a2e37}
-  .dark .pill{background:#1e293b;border-color:#334155;color:#e5e7eb}
+  .dark input,.dark textarea{background:#0f1115;color:#f5f7fb;border-color:#2a2e37}
 </style>
 </head>
 <body>
@@ -42,57 +36,29 @@
   <strong>Historia Clínica Oftalmológica</strong>
   <button id="darkBtn" class="pill">Modo oscuro</button>
   <button id="fsBtn" class="pill">Pantalla completa</button>
-  <div class="right row">
-    <button id="pdfBtn" class="btn">Guardar PDF</button>
-    <button id="limpiarBtn" class="btn">Limpiar</button>
-  </div>
+  <button id="pdfBtn" class="btn">Guardar PDF</button>
+  <button id="guardarPacienteBtn" class="btn">Guardar paciente</button>
+  <button id="limpiarBtn" class="btn">Limpiar</button>
 </header>
 
 <main>
   <!-- Datos básicos -->
   <section class="card grid cols3">
-    <div>
-      <label>Paciente</label>
-      <input id="paciente" placeholder="Nombre completo" />
-    </div>
-    <div>
-      <label>Documento</label>
-      <input id="dni" placeholder="DNI / ID" />
-    </div>
-    <div>
-      <label>Fecha</label>
-      <input id="fecha" type="date" />
-    </div>
-    <div>
-      <label>Edad</label>
-      <input id="edad" placeholder="años" />
-    </div>
-    <div>
-      <label>Teléfono</label>
-      <input id="tel" placeholder="+51 ..." />
-    </div>
-    <div>
-      <label>Correo</label>
-      <input id="correo" placeholder="email@dominio.com" />
-    </div>
+    <div><label>Paciente</label><input id="paciente" /></div>
+    <div><label>Documento</label><input id="dni" /></div>
+    <div><label>Fecha</label><input id="fecha" type="date" /></div>
+    <div><label>Edad</label><input id="edad" /></div>
+    <div><label>Teléfono</label><input id="tel" /></div>
+    <div><label>Correo</label><input id="correo" /></div>
   </section>
 
   <!-- Antecedentes -->
   <section class="card">
     <h2>Antecedentes</h2>
     <div class="grid cols2">
-      <div>
-        <label>Personales patológicos</label>
-        <textarea id="ant_personales" placeholder="HTA, DM, alergias, medicación crónica..."></textarea>
-      </div>
-      <div>
-        <label>Oculares</label>
-        <textarea id="ant_oculares" placeholder="Cirugías, traumas, glaucoma, uveítis..."></textarea>
-      </div>
-      <div class="grid" style="grid-column:1/-1">
-        <label>Familiares</label>
-        <textarea id="ant_familiares" placeholder="Glaucoma, degeneración macular, estrabismo..."></textarea>
-      </div>
+      <div><label>Personales patológicos</label><textarea id="ant_personales"></textarea></div>
+      <div><label>Oculares</label><textarea id="ant_oculares"></textarea></div>
+      <div style="grid-column:1/-1"><label>Familiares</label><textarea id="ant_familiares"></textarea></div>
     </div>
   </section>
 
@@ -100,303 +66,207 @@
   <section class="card">
     <h2>Anamnesis</h2>
     <div class="grid cols2">
-      <div>
-        <label>Tiempo de enfermedad</label>
-        <input id="t_enfermedad" placeholder="p. ej., 3 semanas" />
-      </div>
-      <div>
-        <label>Forma de inicio</label>
-        <input id="forma_inicio" placeholder="Brusco / Insidioso / Intermitente" />
-      </div>
+      <div><label>Tiempo de enfermedad</label><input id="t_enfermedad"/></div>
+      <div><label>Forma de inicio</label><input id="forma_inicio"/></div>
     </div>
-    <div class="grid cols2">
-      <div>
-        <label>Relato</label>
-        <textarea id="relato" placeholder="Relato libre del paciente..."></textarea>
-      </div>
-      <div>
-        <label>Agudeza visual (autorreporte)</label>
-        <textarea id="av_reporte" placeholder="Dificultad de lejos/cerca, halos, fotopsias..."></textarea>
-      </div>
-    </div>
-    <div>
-      <label>Tratamiento actual</label>
-      <textarea id="tto_actual" placeholder="Gotas, lentes de contacto, fármacos sistémicos..."></textarea>
-    </div>
+    <div><label>Relato</label><textarea id="relato"></textarea></div>
+    <div><label>Agudeza visual (autorreporte)</label><textarea id="av_reporte"></textarea></div>
+    <div><label>Tratamiento actual</label><textarea id="tto_actual"></textarea></div>
   </section>
 
   <!-- Examen físico -->
   <section class="card">
     <h2>Examen físico</h2>
-    <!-- Segmento anterior -->
-    <div class="section-title">Segmento anterior</div>
+    <button id="normalOD" class="btn">Normal OD</button>
+    <button id="normalOI" class="btn">Normal OI</button>
     <div class="pair">
       <div class="box">
         <h3>OD</h3>
-        <div class="grid">
-          <div><label>Párpado</label><input id="sa_parpado_od" placeholder="Normal / blefaritis / chalazión..."></div>
-          <div><label>Conjuntiva</label><input id="sa_conj_od" placeholder="Inyectada / quemosis / normal..."></div>
-          <div><label>Esclera</label><input id="sa_esclera_od" placeholder="Normal / ectasia..."></div>
-          <div><label>Córnea</label><input id="sa_cornea_od" placeholder="Transparente / queratitis / haze..."></div>
-          <div><label>Cámara anterior</label><input id="sa_ca_od" placeholder="Profundidad, celularidad, flare..."></div>
-          <div><label>Iris - Pupila</label><input id="sa_iris_od" placeholder="Isocórica / midriasis / sinequias..."></div>
-          <div><label>Movimientos oculares</label><input id="sa_mov_od" placeholder="EOM: normal / limitación..."></div>
-          <div><label>Cristalino</label><input id="sa_crist_od" placeholder="Transparente / catarata..."></div>
-        </div>
+        <input id="sa_parpado_od" placeholder="Párpado" />
+        <input id="sa_conj_od" placeholder="Conjuntiva" />
+        <input id="sa_esclera_od" placeholder="Esclera" />
+        <input id="sa_cornea_od" placeholder="Córnea" />
+        <input id="sa_ca_od" placeholder="Cámara anterior" />
+        <input id="sa_iris_od" placeholder="Iris - Pupila" />
+        <input id="sa_mov_od" placeholder="Movimientos oculares" />
+        <input id="sa_crist_od" placeholder="Cristalino" />
       </div>
       <div class="box">
         <h3>OI</h3>
-        <div class="grid">
-          <div><label>Párpado</label><input id="sa_parpado_oi" placeholder="..."></div>
-          <div><label>Conjuntiva</label><input id="sa_conj_oi" placeholder="..."></div>
-          <div><label>Esclera</label><input id="sa_esclera_oi" placeholder="..."></div>
-          <div><label>Córnea</label><input id="sa_cornea_oi" placeholder="..."></div>
-          <div><label>Cámara anterior</label><input id="sa_ca_oi" placeholder="..."></div>
-          <div><label>Iris - Pupila</label><input id="sa_iris_oi" placeholder="..."></div>
-          <div><label>Movimientos oculares</label><input id="sa_mov_oi" placeholder="..."></div>
-          <div><label>Cristalino</label><input id="sa_crist_oi" placeholder="..."></div>
-        </div>
+        <input id="sa_parpado_oi" placeholder="Párpado" />
+        <input id="sa_conj_oi" placeholder="Conjuntiva" />
+        <input id="sa_esclera_oi" placeholder="Esclera" />
+        <input id="sa_cornea_oi" placeholder="Córnea" />
+        <input id="sa_ca_oi" placeholder="Cámara anterior" />
+        <input id="sa_iris_oi" placeholder="Iris - Pupila" />
+        <input id="sa_mov_oi" placeholder="Movimientos oculares" />
+        <input id="sa_crist_oi" placeholder="Cristalino" />
       </div>
     </div>
-
-    <!-- Segmento posterior -->
-    <div class="section-title" style="margin-top:10px">Segmento posterior</div>
-    <div class="pair">
-      <div class="box">
-        <h3>OD</h3>
-        <div class="grid">
-          <div><label>Nervio óptico</label><input id="sp_no_od" placeholder="Borde nítido / edema / excavación..."></div>
-          <div><label>Vasos sanguíneos</label><input id="sp_vasos_od" placeholder="Calibre, cruces AV..."></div>
-          <div><label>Mácula</label><input id="sp_macula_od" placeholder="Reflejo foveal / edema / drusas..."></div>
-          <div><label>Retina periférica</label><input id="sp_retina_od" placeholder="Desgarros / degeneración lattice..."></div>
-        </div>
-      </div>
-      <div class="box">
-        <h3>OI</h3>
-        <div class="grid">
-          <div><label>Nervio óptico</label><input id="sp_no_oi" placeholder="..."></div>
-          <div><label>Vasos sanguíneos</label><input id="sp_vasos_oi" placeholder="..."></div>
-          <div><label>Mácula</label><input id="sp_macula_oi" placeholder="..."></div>
-          <div><label>Retina periférica</label><input id="sp_retina_oi" placeholder="..."></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tonometría -->
     <div class="grid cols3" style="margin-top:10px">
-      <div>
-        <label>Tonometría OD (mmHg)</label>
-        <input id="tono_od" placeholder="ej. 14" />
-      </div>
-      <div>
-        <label>Tonometría OI (mmHg)</label>
-        <input id="tono_oi" placeholder="ej. 15" />
-      </div>
-      <div>
-        <label>Método</label>
-        <input id="tono_metodo" placeholder="Applanación / iCare / aire..." />
-      </div>
+      <div><label>Tonometría OD</label><input id="tono_od" placeholder="mmHg"/></div>
+      <div><label>Tonometría OI</label><input id="tono_oi" placeholder="mmHg"/></div>
+      <div><label>Método</label><input id="tono_metodo"/></div>
     </div>
   </section>
 
-  <!-- Auxiliares / Diagnóstico / Tratamiento / Órdenes -->
-  <section class="card grid">
-    <div>
-      <h2>Exámenes auxiliares a solicitar</h2>
-      <textarea id="auxiliares" placeholder="OCT mácula/NO, campo visual, paquimetría, topografía, angiografía..."></textarea>
-    </div>
-    <div>
-      <h2>Diagnóstico</h2>
-      <textarea id="diagnostico" placeholder="Dx principal y diferenciales..."></textarea>
-    </div>
-    <div class="grid cols2">
-      <div>
-        <h2>Tratamiento</h2>
-        <textarea id="tratamiento" placeholder="Indicación médica, colirios, posología..."></textarea>
-      </div>
-      <div>
-        <h2>Órdenes médicas</h2>
-        <textarea id="ordenes" placeholder="Control en X días, signos de alarma, interconsultas..."></textarea>
-      </div>
-    </div>
-    <div class="mut">Al guardar PDF se incluye un espacio de firma/sello.</div>
+  <!-- Auxiliares / Diagnóstico / Tratamiento -->
+  <section class="card">
+    <h2>Exámenes auxiliares a solicitar</h2>
+    <textarea id="auxiliares"></textarea>
+    <h2>Diagnóstico (con CIE-10)</h2>
+    <input id="cieInput" placeholder="Ej. H40.1 o glaucoma" />
+    <textarea id="diagnostico"></textarea>
+    <h2>Tratamiento</h2>
+    <textarea id="tratamiento"></textarea>
+    <h2>Órdenes médicas</h2>
+    <textarea id="ordenes"></textarea>
+  </section>
+
+  <!-- Pacientes recientes -->
+  <section class="card">
+    <h2>Pacientes recientes</h2>
+    <table id="pacientesTabla">
+      <thead><tr><th>Nombre</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <tbody></tbody>
+    </table>
   </section>
 </main>
 
 <script>
-/* ===== Helpers ===== */
-const $ = id => document.getElementById(id);
-const val = id => ($(id)?.value || '').trim();
+// ==== Diccionario CIE-10 básico ====
+const cie10 = {
+  "H40.1":"Glaucoma primario de ángulo abierto",
+  "H52.1":"Miopía",
+  "H52.2":"Hipermetropía",
+  "H52.4":"Presbicia",
+  "H25.0":"Catarata senil incipiente",
+  "H10.0":"Conjuntivitis mucopurulenta"
+};
 
-/* ===== Modo oscuro ===== */
-$('darkBtn').addEventListener('click',()=>document.body.classList.toggle('dark'));
-
-/* ===== Pantalla completa ===== */
-$('fsBtn').addEventListener('click',()=>{
-  if(!document.fullscreenElement){document.documentElement.requestFullscreen?.();}else{document.exitFullscreen?.();}
-});
-
-/* ===== Limpiar ===== */
-$('limpiarBtn').addEventListener('click',()=>{
-  if(confirm('¿Borrar todos los campos?')) document.querySelectorAll('input, textarea').forEach(e=>e.value='');
-});
-
-/* ===== PDF (con salto de página y flujo continuo) ===== */
-$('pdfBtn').addEventListener('click',()=>{
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-
-  // Márgenes y medidas
-  const mm = v => v * 2.83465;
-  const MLEFT = mm(18), MRIGHT = mm(18), MTOP = mm(18), MBOT = mm(20);
-  const PAGE_W = doc.internal.pageSize.getWidth();
-  const PAGE_H = doc.internal.pageSize.getHeight();
-  const CONTENT_W = PAGE_W - MLEFT - MRIGHT;
-  const LINE_H = 16;
-  let y = MTOP;
-
-  // Helpers
-  function newPage(){ doc.addPage(); y = MTOP; }
-  function ensureSpace(lines=1){ if (y + lines*LINE_H > PAGE_H - MBOT) newPage(); }
-  function writeLine(text, opts = {}){
-    const maxWidth = opts.maxWidth ?? CONTENT_W;
-    const x = opts.x ?? MLEFT;
-    const font = opts.font ?? ['helvetica','normal'];
-    const size = opts.size ?? 11;
-    doc.setFont(font[0], font[1]); doc.setFontSize(size);
-    const wrapped = doc.splitTextToSize(String(text ?? '—'), maxWidth);
-    wrapped.forEach(ln=>{ ensureSpace(1); doc.text(ln, x, y); y += LINE_H; });
-  }
-  function writeTitle(text){
-    doc.setFont('helvetica','bold'); doc.setFontSize(12);
-    ensureSpace(1); doc.text(text, MLEFT, y); y += LINE_H;
-  }
-  function writeKV(label, value){
-    writeLine(`${label}: ${value ? value : '—'}`);
-  }
-
-  // Encabezado
-  doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text('Historia Clínica Oftalmológica', MLEFT, y); y += LINE_H*1.6;
-
-  // Ficha / filiación a dos columnas reales
-  doc.setFont('helvetica','normal'); doc.setFontSize(11);
-  const colGap = mm(10);
-  const colW = (CONTENT_W - colGap) / 2;
-  let yL = y, yR = y;
-
-  const leftItems = [
-    `Paciente: ${val('paciente') || '—'}`,
-    `DNI: ${val('dni') || '—'}`,
-    `Fecha: ${val('fecha') || '—'}`
-  ];
-  const rightItems = [
-    `Edad: ${val('edad') || '—'}`,
-    `Tel: ${val('tel') || '—'}`,
-    `Correo: ${val('correo') || '—'}`
-  ];
-
-  // Escribe izquierda
-  leftItems.forEach(t=>{
-    const lines = doc.splitTextToSize(t, colW);
-    lines.forEach(l=>{
-      if (yL + LINE_H > PAGE_H - MBOT){ newPage(); yL = MTOP; yR = Math.max(yR, yL); }
-      doc.text(l, MLEFT, yL); yL += LINE_H;
-    });
+// ==== Auto-guardado ====
+document.querySelectorAll("input,textarea").forEach(el=>{
+  el.addEventListener("input",()=>{
+    localStorage.setItem("hc_actual", JSON.stringify(getFormData()));
   });
-  // Escribe derecha
-  rightItems.forEach(t=>{
-    const lines = doc.splitTextToSize(t, colW);
-    lines.forEach(l=>{
-      if (yR + LINE_H > PAGE_H - MBOT){ newPage(); yR = MTOP; yL = Math.max(yL, yR); }
-      doc.text(l, MLEFT + colW + colGap, yR); yR += LINE_H;
-    });
-  });
-
-  y = Math.max(yL, yR) + LINE_H*0.6;
-
-  // === Antecedentes ===
-  writeTitle('Antecedentes');
-  writeKV('Personales',  val('ant_personales'));
-  writeKV('Oculares',    val('ant_oculares'));
-  writeKV('Familiares',  val('ant_familiares'));
-  y += 6;
-
-  // === Anamnesis ===
-  writeTitle('Anamnesis');
-  writeKV('Tiempo de enfermedad', val('t_enfermedad'));
-  writeKV('Forma de inicio',      val('forma_inicio'));
-  writeKV('Relato',               val('relato'));
-  writeKV('AV (autorreporte)',    val('av_reporte'));
-  writeKV('Tratamiento actual',   val('tto_actual'));
-  y += 6;
-
-  // === Examen físico – Segmento anterior (OD/OI) ===
-  writeTitle('Examen físico – Segmento anterior (OD)');
-  writeKV('Párpado',         val('sa_parpado_od'));
-  writeKV('Conjuntiva',      val('sa_conj_od'));
-  writeKV('Esclera',         val('sa_esclera_od'));
-  writeKV('Córnea',          val('sa_cornea_od'));
-  writeKV('Cámara anterior', val('sa_ca_od'));
-  writeKV('Iris-Pupila',     val('sa_iris_od'));
-  writeKV('Mov. oculares',   val('sa_mov_od'));
-  writeKV('Cristalino',      val('sa_crist_od'));
-  y += 6;
-
-  writeTitle('Examen físico – Segmento anterior (OI)');
-  writeKV('Párpado',         val('sa_parpado_oi'));
-  writeKV('Conjuntiva',      val('sa_conj_oi'));
-  writeKV('Esclera',         val('sa_esclera_oi'));
-  writeKV('Córnea',          val('sa_cornea_oi'));
-  writeKV('Cámara anterior', val('sa_ca_oi'));
-  writeKV('Iris-Pupila',     val('sa_iris_oi'));
-  writeKV('Mov. oculares',   val('sa_mov_oi'));
-  writeKV('Cristalino',      val('sa_crist_oi'));
-  y += 6;
-
-  // === Examen físico – Segmento posterior (OD/OI) ===
-  writeTitle('Examen físico – Segmento posterior (OD)');
-  writeKV('Nervio óptico',     val('sp_no_od'));
-  writeKV('Vasos sanguíneos',  val('sp_vasos_od'));
-  writeKV('Mácula',            val('sp_macula_od'));
-  writeKV('Retina periférica', val('sp_retina_od'));
-  y += 6;
-
-  writeTitle('Examen físico – Segmento posterior (OI)');
-  writeKV('Nervio óptico',     val('sp_no_oi'));
-  writeKV('Vasos sanguíneos',  val('sp_vasos_oi'));
-  writeKV('Mácula',            val('sp_macula_oi'));
-  writeKV('Retina periférica', val('sp_retina_oi'));
-  y += 6;
-
-  // === Tonometría ===
-  writeTitle('Tonometría');
-  writeKV('OD (mmHg)', val('tono_od'));
-  writeKV('OI (mmHg)', val('tono_oi'));
-  writeKV('Método',    val('tono_metodo'));
-  y += 6;
-
-  // === Auxiliares / Dx / Tto / Órdenes ===
-  writeTitle('Exámenes auxiliares a solicitar');
-  writeLine(val('auxiliares'));
-  writeTitle('Diagnóstico');
-  writeLine(val('diagnostico'));
-  writeTitle('Tratamiento');
-  writeLine(val('tratamiento'));
-  writeTitle('Órdenes médicas');
-  writeLine(val('ordenes'));
-
-// Firma (más abajo)
-ensureSpace(8); // reserva más espacio en blanco
-const yLine = y + LINE_H*4; // baja 4 renglones extra
-doc.line( MLEFT, yLine, MLEFT + mm(80), yLine );
-doc.text('Firma / Sello', MLEFT, yLine + 18);
-
-
-  const nombre = (val('paciente') || 'historia').replace(/\s+/g,'_');
-  doc.save(`HC_${nombre}.pdf`);
 });
+
+// ==== Recuperar último paciente ====
+window.addEventListener("load",()=>{
+  const data = localStorage.getItem("hc_actual");
+  if(data){ fillForm(JSON.parse(data)); }
+  renderPacientes();
+});
+
+// ==== Funciones de formulario ====
+function getFormData(){
+  const data={};
+  document.querySelectorAll("input,textarea").forEach(el=>{ data[el.id]=el.value; });
+  return data;
+}
+function fillForm(data){
+  for(const k in data){ if($(k)) $(k).value=data[k]; }
+}
+function $(id){ return document.getElementById(id); }
+
+// ==== Guardar paciente ====
+$("guardarPacienteBtn").addEventListener("click",()=>{
+  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
+  const p=getFormData();
+  pacientes.push({...p,fechaGuardado:new Date().toLocaleString()});
+  localStorage.setItem("pacientes",JSON.stringify(pacientes));
+  renderPacientes();
+});
+
+// ==== Render pacientes recientes ====
+function renderPacientes(){
+  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
+  const tbody=$("pacientesTabla").querySelector("tbody");
+  tbody.innerHTML="";
+  pacientes.forEach((p,i)=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td>${p.paciente||'—'}</td><td>${p.fechaGuardado}</td>
+      <td><button onclick="cargarPaciente(${i})">Cargar</button>
+          <button onclick="exportarPaciente(${i})">PDF</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function cargarPaciente(i){
+  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
+  fillForm(pacientes[i]); 
+  localStorage.setItem("hc_actual",JSON.stringify(pacientes[i]));
+}
+function exportarPaciente(i){
+  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
+  fillForm(pacientes[i]);
+  localStorage.setItem("hc_actual",JSON.stringify(pacientes[i]));
+  generarPDF();
+}
+
+// ==== Botones examen físico normal ====
+const plantilla = {
+  parpado:"Sin lesiones",
+  conj:"Normocrómica",
+  esclera:"Sin lesiones",
+  cornea:"Clara",
+  ca:"Formada",
+  iris:"Fotorreactiva",
+  mov:"Centrado",
+  crist:"Transparente"
+};
+$("normalOD").onclick=()=>{
+  $("sa_parpado_od").value=plantilla.parpado;
+  $("sa_conj_od").value=plantilla.conj;
+  $("sa_esclera_od").value=plantilla.esclera;
+  $("sa_cornea_od").value=plantilla.cornea;
+  $("sa_ca_od").value=plantilla.ca;
+  $("sa_iris_od").value=plantilla.iris;
+  $("sa_mov_od").value=plantilla.mov;
+  $("sa_crist_od").value=plantilla.crist;
+};
+$("normalOI").onclick=()=>{
+  $("sa_parpado_oi").value=plantilla.parpado;
+  $("sa_conj_oi").value=plantilla.conj;
+  $("sa_esclera_oi").value=plantilla.esclera;
+  $("sa_cornea_oi").value=plantilla.cornea;
+  $("sa_ca_oi").value=plantilla.ca;
+  $("sa_iris_oi").value=plantilla.iris;
+  $("sa_mov_oi").value=plantilla.mov;
+  $("sa_crist_oi").value=plantilla.crist;
+};
+
+// ==== Buscador CIE-10 ====
+$("cieInput").addEventListener("input",e=>{
+  const q=e.target.value.toUpperCase();
+  let found="";
+  for(const code in cie10){
+    if(code.includes(q) || cie10[code].toUpperCase().includes(q)){
+      found=`${code}: ${cie10[code]}`;
+      break;
+    }
+  }
+  $("diagnostico").value=found;
+});
+
+// ==== Modo oscuro / pantalla completa / limpiar ====
+$("darkBtn").onclick=()=>document.body.classList.toggle("dark");
+$("fsBtn").onclick=()=>!document.fullscreenElement?document.documentElement.requestFullscreen():document.exitFullscreen();
+$("limpiarBtn").onclick=()=>{ if(confirm("¿Borrar todo?")) document.querySelectorAll("input,textarea").forEach(e=>e.value=""); };
+
+// ==== PDF ====
+$("pdfBtn").onclick=()=>generarPDF();
+function generarPDF(){
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF({unit:"pt",format:"a4"});
+  doc.setFont("helvetica","normal");
+  const data=getFormData();
+  let y=40;
+  doc.setFontSize(14); doc.text("Historia Clínica Oftalmológica",40,y); y+=30;
+  doc.setFontSize(10);
+  for(const k in data){ doc.text(`${k}: ${data[k]||'—'}`,40,y); y+=14; if(y>780){ doc.addPage(); y=40;} }
+  doc.text("Firma / Sello",40,y+40);
+  doc.save(`HC_${data.paciente||'paciente'}.pdf`);
+}
 </script>
 </body>
 </html>
-
