@@ -96,9 +96,9 @@
     </div>
   </section>
 
-<!-- Anamnesis -->
-<section class="card">
-  <h2>Anamnesis</h2>
+  <!-- Anamnesis -->
+  <section class="card">
+    <h2>Anamnesis</h2>
     <div class="grid cols2">
       <div>
         <label>Tiempo de enfermedad</label>
@@ -241,13 +241,12 @@ $('limpiarBtn').addEventListener('click',()=>{
   if(confirm('¿Borrar todos los campos?')) document.querySelectorAll('input, textarea').forEach(e=>e.value='');
 });
 
-<script>
-// ===== PDF (versión corregida con salto de página y flujo continuo) =====
-document.getElementById('pdfBtn').addEventListener('click', ()=>{
+/* ===== PDF (con salto de página y flujo continuo) ===== */
+$('pdfBtn').addEventListener('click',()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
 
-  // Utilidades / márgenes
+  // Márgenes y medidas
   const mm = v => v * 2.83465;
   const MLEFT = mm(18), MRIGHT = mm(18), MTOP = mm(18), MBOT = mm(20);
   const PAGE_W = doc.internal.pageSize.getWidth();
@@ -256,45 +255,34 @@ document.getElementById('pdfBtn').addEventListener('click', ()=>{
   const LINE_H = 16;
   let y = MTOP;
 
-  // Helpers de escritura con salto de página
-  function newPage() { doc.addPage(); y = MTOP; }
-  function ensureSpace(linesNeeded = 1) {
-    if (y + linesNeeded * LINE_H > PAGE_H - MBOT) newPage();
-  }
-  function writeLine(text, opts = {}) {
+  // Helpers
+  function newPage(){ doc.addPage(); y = MTOP; }
+  function ensureSpace(lines=1){ if (y + lines*LINE_H > PAGE_H - MBOT) newPage(); }
+  function writeLine(text, opts = {}){
     const maxWidth = opts.maxWidth ?? CONTENT_W;
     const x = opts.x ?? MLEFT;
-    const font = opts.font ?? ['helvetica', 'normal'];
+    const font = opts.font ?? ['helvetica','normal'];
     const size = opts.size ?? 11;
-    doc.setFont(font[0], font[1]);
-    doc.setFontSize(size);
+    doc.setFont(font[0], font[1]); doc.setFontSize(size);
     const wrapped = doc.splitTextToSize(String(text ?? '—'), maxWidth);
-    wrapped.forEach((ln) => {
-      ensureSpace(1);
-      doc.text(ln, x, y);
-      y += LINE_H;
-    });
+    wrapped.forEach(ln=>{ ensureSpace(1); doc.text(ln, x, y); y += LINE_H; });
   }
-  function writeTitle(text) {
+  function writeTitle(text){
     doc.setFont('helvetica','bold'); doc.setFontSize(12);
     ensureSpace(1); doc.text(text, MLEFT, y); y += LINE_H;
   }
-  function writeKV(label, value) {
+  function writeKV(label, value){
     writeLine(`${label}: ${value ? value : '—'}`);
   }
 
-  // Toma de valores
-  const $ = id => document.getElementById(id);
-  const val = id => ($(id)?.value || '').trim();
-
   // Encabezado
   doc.setFont('helvetica','bold'); doc.setFontSize(16);
-  doc.text('Historia Clínica Oftalmológica', MLEFT, y); y += LINE_H * 1.6;
+  doc.text('Historia Clínica Oftalmológica', MLEFT, y); y += LINE_H*1.6;
 
-  // Ficha / filiación en dos columnas seguras
+  // Ficha / filiación a dos columnas reales
   doc.setFont('helvetica','normal'); doc.setFontSize(11);
-  const colW = (CONTENT_W - mm(10)) / 2; // 10 mm separación
   const colGap = mm(10);
+  const colW = (CONTENT_W - colGap) / 2;
   let yL = y, yR = y;
 
   const leftItems = [
@@ -308,27 +296,24 @@ document.getElementById('pdfBtn').addEventListener('click', ()=>{
     `Correo: ${val('correo') || '—'}`
   ];
 
-  // escribe columna izquierda
-  leftItems.forEach(t => {
+  // Escribe izquierda
+  leftItems.forEach(t=>{
     const lines = doc.splitTextToSize(t, colW);
-    lines.forEach(ln => {
-      if (yL + LINE_H > PAGE_H - MBOT) { newPage(); yL = y; }
-      doc.text(ln, MLEFT, yL);
-      yL += LINE_H;
+    lines.forEach(l=>{
+      if (yL + LINE_H > PAGE_H - MBOT){ newPage(); yL = MTOP; yR = Math.max(yR, yL); }
+      doc.text(l, MLEFT, yL); yL += LINE_H;
+    });
+  });
+  // Escribe derecha
+  rightItems.forEach(t=>{
+    const lines = doc.splitTextToSize(t, colW);
+    lines.forEach(l=>{
+      if (yR + LINE_H > PAGE_H - MBOT){ newPage(); yR = MTOP; yL = Math.max(yL, yR); }
+      doc.text(l, MLEFT + colW + colGap, yR); yR += LINE_H;
     });
   });
 
-  // escribe columna derecha
-  rightItems.forEach(t => {
-    const lines = doc.splitTextToSize(t, colW);
-    lines.forEach(ln => {
-      if (yR + LINE_H > PAGE_H - MBOT) { newPage(); yR = y; }
-      doc.text(ln, MLEFT + colW + colGap, yR);
-      yR += LINE_H;
-    });
-  });
-
-  y = Math.max(yL, yR) + LINE_H * 0.6; // continuar debajo de la mayor
+  y = Math.max(yL, yR) + LINE_H*0.6;
 
   // === Antecedentes ===
   writeTitle('Antecedentes');
@@ -394,19 +379,16 @@ document.getElementById('pdfBtn').addEventListener('click', ()=>{
   // === Auxiliares / Dx / Tto / Órdenes ===
   writeTitle('Exámenes auxiliares a solicitar');
   writeLine(val('auxiliares'));
-
   writeTitle('Diagnóstico');
   writeLine(val('diagnostico'));
-
   writeTitle('Tratamiento');
   writeLine(val('tratamiento'));
-
   writeTitle('Órdenes médicas');
   writeLine(val('ordenes'));
 
   // Firma
   ensureSpace(4);
-  const yLine = y + LINE_H * 1.5;
+  const yLine = y + LINE_H*1.5;
   doc.line( MLEFT, yLine, MLEFT + mm(80), yLine );
   doc.text('Firma / Sello', MLEFT, yLine + 14);
 
@@ -414,3 +396,5 @@ document.getElementById('pdfBtn').addEventListener('click', ()=>{
   doc.save(`HC_${nombre}.pdf`);
 });
 </script>
+</body>
+</html>
