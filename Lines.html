@@ -26,6 +26,7 @@
   .pair .box{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}
   table{width:100%;border-collapse:collapse;margin-top:8px}
   th,td{border:1px solid #ccc;padding:6px;font-size:12px}
+  .mut{color:var(--mut);font-size:12px}
   .dark{--bg:#0f1115;--fg:#f5f7fb;--mut:#a3a7b0;--line:#2a2e37;--card:#171a21}
   .dark input,.dark textarea{background:#0f1115;color:#f5f7fb;border-color:#2a2e37}
 </style>
@@ -77,8 +78,12 @@
   <!-- Examen físico -->
   <section class="card">
     <h2>Examen físico</h2>
-    <button id="normalOD" class="btn">Normal OD</button>
-    <button id="normalOI" class="btn">Normal OI</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+      <button id="normalOD" class="btn">Normal OD</button>
+      <button id="normalOI" class="btn">Normal OI</button>
+      <span class="mut">Plantilla normal: Párpado sin lesiones, Conjuntiva normocrómica, Esclera sin lesiones,
+        Córnea clara, Cámara anterior formada, Iris/Pupila fotorreactiva, Movimientos oculares centrado, Cristalino transparente.</span>
+    </div>
     <div class="pair">
       <div class="box">
         <h3>OD</h3>
@@ -104,9 +109,9 @@
       </div>
     </div>
     <div class="grid cols3" style="margin-top:10px">
-      <div><label>Tonometría OD</label><input id="tono_od" placeholder="mmHg"/></div>
-      <div><label>Tonometría OI</label><input id="tono_oi" placeholder="mmHg"/></div>
-      <div><label>Método</label><input id="tono_metodo"/></div>
+      <div><label>Tonometría OD (mmHg)</label><input id="tono_od" type="number" step="0.5" placeholder="ej. 14"/></div>
+      <div><label>Tonometría OI (mmHg)</label><input id="tono_oi" type="number" step="0.5" placeholder="ej. 15"/></div>
+      <div><label>Método</label><input id="tono_metodo" placeholder="Applanación / iCare / aire..." /></div>
     </div>
   </section>
 
@@ -114,11 +119,18 @@
   <section class="card">
     <h2>Exámenes auxiliares a solicitar</h2>
     <textarea id="auxiliares"></textarea>
-    <h2>Diagnóstico (con CIE-10)</h2>
-    <input id="cieInput" placeholder="Ej. H40.1 o glaucoma" />
-    <textarea id="diagnostico"></textarea>
+
+    <h2>Diagnóstico (CIE-10)</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="cieInput" list="cieList" placeholder="Ej. H40.1 o 'glaucoma primario'"/>
+      <datalist id="cieList"></datalist>
+      <button id="agregarCIE" class="btn">Agregar CIE-10</button>
+    </div>
+    <textarea id="diagnostico" placeholder="Se agregan aquí los códigos y descripciones..."></textarea>
+
     <h2>Tratamiento</h2>
     <textarea id="tratamiento"></textarea>
+
     <h2>Órdenes médicas</h2>
     <textarea id="ordenes"></textarea>
   </section>
@@ -127,83 +139,28 @@
   <section class="card">
     <h2>Pacientes recientes</h2>
     <table id="pacientesTabla">
-      <thead><tr><th>Nombre</th><th>Fecha</th><th>Acciones</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Fecha guardado</th><th>Acciones</th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
 </main>
 
 <script>
-// ==== Diccionario CIE-10 básico ====
-const cie10 = {
-  "H40.1":"Glaucoma primario de ángulo abierto",
-  "H52.1":"Miopía",
-  "H52.2":"Hipermetropía",
-  "H52.4":"Presbicia",
-  "H25.0":"Catarata senil incipiente",
-  "H10.0":"Conjuntivitis mucopurulenta"
+/* ===== Helpers DOM ===== */
+const $ = id => document.getElementById(id);
+const val = id => ($(id)?.value || '').trim();
+
+/* ===== Modo oscuro / pantalla completa / limpiar ===== */
+$('darkBtn').onclick = () => document.body.classList.toggle('dark');
+$('fsBtn').onclick   = () => !document.fullscreenElement ? document.documentElement.requestFullscreen() : document.exitFullscreen();
+$('limpiarBtn').onclick = () => {
+  if(confirm('¿Borrar todos los campos?')){
+    document.querySelectorAll('input, textarea').forEach(e=>e.value='');
+    localStorage.removeItem('hc_actual');
+  }
 };
 
-// ==== Auto-guardado ====
-document.querySelectorAll("input,textarea").forEach(el=>{
-  el.addEventListener("input",()=>{
-    localStorage.setItem("hc_actual", JSON.stringify(getFormData()));
-  });
-});
-
-// ==== Recuperar último paciente ====
-window.addEventListener("load",()=>{
-  const data = localStorage.getItem("hc_actual");
-  if(data){ fillForm(JSON.parse(data)); }
-  renderPacientes();
-});
-
-// ==== Funciones de formulario ====
-function getFormData(){
-  const data={};
-  document.querySelectorAll("input,textarea").forEach(el=>{ data[el.id]=el.value; });
-  return data;
-}
-function fillForm(data){
-  for(const k in data){ if($(k)) $(k).value=data[k]; }
-}
-function $(id){ return document.getElementById(id); }
-
-// ==== Guardar paciente ====
-$("guardarPacienteBtn").addEventListener("click",()=>{
-  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
-  const p=getFormData();
-  pacientes.push({...p,fechaGuardado:new Date().toLocaleString()});
-  localStorage.setItem("pacientes",JSON.stringify(pacientes));
-  renderPacientes();
-});
-
-// ==== Render pacientes recientes ====
-function renderPacientes(){
-  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
-  const tbody=$("pacientesTabla").querySelector("tbody");
-  tbody.innerHTML="";
-  pacientes.forEach((p,i)=>{
-    const tr=document.createElement("tr");
-    tr.innerHTML=`<td>${p.paciente||'—'}</td><td>${p.fechaGuardado}</td>
-      <td><button onclick="cargarPaciente(${i})">Cargar</button>
-          <button onclick="exportarPaciente(${i})">PDF</button></td>`;
-    tbody.appendChild(tr);
-  });
-}
-function cargarPaciente(i){
-  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
-  fillForm(pacientes[i]); 
-  localStorage.setItem("hc_actual",JSON.stringify(pacientes[i]));
-}
-function exportarPaciente(i){
-  const pacientes=JSON.parse(localStorage.getItem("pacientes")||"[]");
-  fillForm(pacientes[i]);
-  localStorage.setItem("hc_actual",JSON.stringify(pacientes[i]));
-  generarPDF();
-}
-
-// ==== Botones examen físico normal ====
+/* ===== Plantilla “Normal” OD/OI ===== */
 const plantilla = {
   parpado:"Sin lesiones",
   conj:"Normocrómica",
@@ -214,58 +171,311 @@ const plantilla = {
   mov:"Centrado",
   crist:"Transparente"
 };
-$("normalOD").onclick=()=>{
-  $("sa_parpado_od").value=plantilla.parpado;
-  $("sa_conj_od").value=plantilla.conj;
-  $("sa_esclera_od").value=plantilla.esclera;
-  $("sa_cornea_od").value=plantilla.cornea;
-  $("sa_ca_od").value=plantilla.ca;
-  $("sa_iris_od").value=plantilla.iris;
-  $("sa_mov_od").value=plantilla.mov;
-  $("sa_crist_od").value=plantilla.crist;
+$('normalOD').onclick = () => {
+  $('sa_parpado_od').value=plantilla.parpado;
+  $('sa_conj_od').value=plantilla.conj;
+  $('sa_esclera_od').value=plantilla.esclera;
+  $('sa_cornea_od').value=plantilla.cornea;
+  $('sa_ca_od').value=plantilla.ca;
+  $('sa_iris_od').value=plantilla.iris;
+  $('sa_mov_od').value=plantilla.mov;
+  $('sa_crist_od').value=plantilla.crist;
+  autosave();
 };
-$("normalOI").onclick=()=>{
-  $("sa_parpado_oi").value=plantilla.parpado;
-  $("sa_conj_oi").value=plantilla.conj;
-  $("sa_esclera_oi").value=plantilla.esclera;
-  $("sa_cornea_oi").value=plantilla.cornea;
-  $("sa_ca_oi").value=plantilla.ca;
-  $("sa_iris_oi").value=plantilla.iris;
-  $("sa_mov_oi").value=plantilla.mov;
-  $("sa_crist_oi").value=plantilla.crist;
+$('normalOI').onclick = () => {
+  $('sa_parpado_oi').value=plantilla.parpado;
+  $('sa_conj_oi').value=plantilla.conj;
+  $('sa_esclera_oi').value=plantilla.esclera;
+  $('sa_cornea_oi').value=plantilla.cornea;
+  $('sa_ca_oi').value=plantilla.ca;
+  $('sa_iris_oi').value=plantilla.iris;
+  $('sa_mov_oi').value=plantilla.mov;
+  $('sa_crist_oi').value=plantilla.crist;
+  autosave();
 };
 
-// ==== Buscador CIE-10 ====
-$("cieInput").addEventListener("input",e=>{
-  const q=e.target.value.toUpperCase();
-  let found="";
-  for(const code in cie10){
-    if(code.includes(q) || cie10[code].toUpperCase().includes(q)){
-      found=`${code}: ${cie10[code]}`;
-      break;
-    }
-  }
-  $("diagnostico").value=found;
+/* ===== Auto-guardado ===== */
+function getFormData(){
+  const data={};
+  document.querySelectorAll('input,textarea').forEach(el=>{ data[el.id]=el.value; });
+  return data;
+}
+function fillForm(data){
+  for(const k in data){ if($(k)) $(k).value=data[k]; }
+}
+function autosave(){ localStorage.setItem('hc_actual', JSON.stringify(getFormData())); }
+document.querySelectorAll('input,textarea').forEach(el=>el.addEventListener('input', autosave));
+
+/* Al cargar: restaurar último y render pacientes */
+window.addEventListener('load', ()=>{
+  const data = localStorage.getItem('hc_actual');
+  if(data){ fillForm(JSON.parse(data)); }
+  renderPacientes();
+  cargarCIE10();
 });
 
-// ==== Modo oscuro / pantalla completa / limpiar ====
-$("darkBtn").onclick=()=>document.body.classList.toggle("dark");
-$("fsBtn").onclick=()=>!document.fullscreenElement?document.documentElement.requestFullscreen():document.exitFullscreen();
-$("limpiarBtn").onclick=()=>{ if(confirm("¿Borrar todo?")) document.querySelectorAll("input,textarea").forEach(e=>e.value=""); };
+/* ===== Guardar paciente y listado ===== */
+$('guardarPacienteBtn').onclick = () => {
+  const pacientes = JSON.parse(localStorage.getItem('pacientes')||'[]');
+  const p = getFormData();
+  p.fechaGuardado = new Date().toLocaleString();
+  pacientes.push(p);
+  localStorage.setItem('pacientes', JSON.stringify(pacientes));
+  renderPacientes();
+};
+function renderPacientes(){
+  const pacientes = JSON.parse(localStorage.getItem('pacientes')||'[]');
+  const tbody = $('pacientesTabla').querySelector('tbody');
+  tbody.innerHTML='';
+  pacientes.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.paciente || '—'}</td>
+      <td>${p.fechaGuardado}</td>
+      <td>
+        <button onclick="cargarPaciente(${i})">Cargar</button>
+        <button onclick="exportarPaciente(${i})">PDF</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+window.cargarPaciente = (i)=>{
+  const pacientes = JSON.parse(localStorage.getItem('pacientes')||'[]');
+  fillForm(pacientes[i]); autosave();
+};
+window.exportarPaciente = (i)=>{
+  const pacientes = JSON.parse(localStorage.getItem('pacientes')||'[]');
+  fillForm(pacientes[i]); autosave(); generarPDF();
+};
 
-// ==== PDF ====
-$("pdfBtn").onclick=()=>generarPDF();
+/* ===== CIE-10: diccionario y buscador ===== */
+/* Lista ampliada (común en oftalmología). Puedes seguir agregando más. */
+const CIE10 = [
+  {code:'H00.0', desc:'Orzuelo y otras inflamaciones profundas del párpado'},
+  {code:'H00.1', desc:'Chalazión'},
+  {code:'H01.0', desc:'Blefaritis'},
+  {code:'H04.1', desc:'Ojo seco (Trastornos de la secreción lagrimal)'},
+  {code:'H10.0', desc:'Conjuntivitis mucopurulenta'},
+  {code:'H10.1', desc:'Conjuntivitis aguda atópica'},
+  {code:'H10.4', desc:'Conjuntivitis aguda no especificada'},
+  {code:'H11.0', desc:'Pingüécula'},
+  {code:'H11.1', desc:'Pterigión'},
+  {code:'H16.0', desc:'Úlcera de la córnea'},
+  {code:'H16.2', desc:'Queratitis intersticial y profunda'},
+  {code:'H17.9', desc:'Cicatriz corneal, no especificada'},
+  {code:'H18.2', desc:'Degeneración marginal pelúcida / queratoglobo (otros trastornos corneales)'},
+  {code:'H18.6', desc:'Queratocono'},
+  {code:'H20.0', desc:'Iridociclitis aguda (Uveítis anterior)'},
+  {code:'H21.0', desc:'Hifema'},
+  {code:'H25.0', desc:'Catarata senil incipiente'},
+  {code:'H25.1', desc:'Catarata senil nuclear'},
+  {code:'H25.2', desc:'Catarata senil cortical'},
+  {code:'H26.2', desc:'Catarata después de procedimientos quirúrgicos (secundaria)'},
+  {code:'H27.0', desc:'Afaquia'},
+  {code:'H35.0', desc:'Retinopatía de fondo, no diabética'},
+  {code:'H35.3', desc:'Degeneración macular y del polo posterior'},
+  {code:'H35.4', desc:'Desprendimiento del epitelio pigmentario de la retina'},
+  {code:'H33.0', desc:'Desprendimiento de retina con desgarro'},
+  {code:'H34.1', desc:'Oclusión de la arteria central de la retina'},
+  {code:'H34.8', desc:'Oclusión venosa de la retina'},
+  {code:'H40.1', desc:'Glaucoma primario de ángulo abierto'},
+  {code:'H40.2', desc:'Glaucoma de ángulo cerrado'},
+  {code:'H40.3', desc:'Glaucoma secundario'},
+  {code:'H44.2', desc:'Alta miopía patológica'},
+  {code:'H49.0', desc:'Parálisis del III par (oculomotor)'},
+  {code:'H49.1', desc:'Parálisis del IV par (troclear)'},
+  {code:'H49.2', desc:'Parálisis del VI par (abducens)'},
+  {code:'H50.0', desc:'Esotropía'},
+  {code:'H50.1', desc:'Exotropía'},
+  {code:'H50.5', desc:'Heteroforia (foria)'},
+  {code:'H52.0', desc:'Astigmatismo'},
+  {code:'H52.1', desc:'Miopía'},
+  {code:'H52.2', desc:'Hipermetropía'},
+  {code:'H52.4', desc:'Presbicia'},
+  {code:'H53.0', desc:'Amblyopía'},
+  {code:'H53.1', desc:'Trastornos visuales subjetivos (fotopsias, etc.)'},
+  {code:'H54.0', desc:'Ceguera y disminución de la visión (no especificada)'},
+  {code:'H57.8', desc:'Otros trastornos del ojo y anexos'},
+  {code:'T81.4', desc:'Infección posterior a procedimiento (útil postquirúrgico)'},
+  {code:'Z96.1', desc:'Presencia de lente intraocular (LIO)'},
+  {code:'E11.3', desc:'Diabetes tipo 2 con complicaciones oculares'},
+  {code:'E10.3', desc:'Diabetes tipo 1 con complicaciones oculares'}
+];
+function cargarCIE10(){
+  const dl=$('cieList'); dl.innerHTML='';
+  CIE10.forEach(({code,desc})=>{
+    const opt=document.createElement('option');
+    opt.value=`${code} — ${desc}`;
+    dl.appendChild(opt);
+  });
+}
+function buscarCIE(q){
+  q=q.toUpperCase();
+  return CIE10.filter(({code,desc})=>
+    code.toUpperCase().includes(q) || desc.toUpperCase().includes(q)
+  ).slice(0,15);
+}
+$('cieInput').addEventListener('input', (e)=>{
+  // (el datalist ya sugiere; aquí podríamos actualizar dinámicamente si quisiéramos)
+});
+$('agregarCIE').addEventListener('click', ()=>{
+  const q = $('cieInput').value.trim();
+  if(!q) return;
+  let entry='';
+  // si viene como "H40.1 — Glaucoma ..." úsalo directo
+  if(q.includes('—')) entry=q;
+  else{
+    const f = buscarCIE(q)[0];
+    if(!f){ alert('No se encontró CIE-10 con ese código/término.'); return; }
+    entry = `${f.code} — ${f.desc}`;
+  }
+  const dx = $('diagnostico').value.trim();
+  $('diagnostico').value = dx ? (dx + '\n' + entry) : entry;
+  $('cieInput').value='';
+  autosave();
+});
+
+/* ===== PDF profesional (paginado + firma abajo) ===== */
+$('pdfBtn').onclick = () => generarPDF();
 function generarPDF(){
-  const { jsPDF }=window.jspdf;
-  const doc=new jsPDF({unit:"pt",format:"a4"});
-  doc.setFont("helvetica","normal");
-  const data=getFormData();
-  let y=40;
-  doc.setFontSize(14); doc.text("Historia Clínica Oftalmológica",40,y); y+=30;
-  doc.setFontSize(10);
-  for(const k in data){ doc.text(`${k}: ${data[k]||'—'}`,40,y); y+=14; if(y>780){ doc.addPage(); y=40;} }
-  doc.text("Firma / Sello",40,y+40);
-  doc.save(`HC_${data.paciente||'paciente'}.pdf`);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'pt', format:'a4' });
+
+  const mm = v => v*2.83465;
+  const MLEFT = mm(18), MRIGHT = mm(18), MTOP = mm(18), MBOT = mm(20);
+  const PAGE_W = doc.internal.pageSize.getWidth();
+  const PAGE_H = doc.internal.pageSize.getHeight();
+  const CONTENT_W = PAGE_W - MLEFT - MRIGHT;
+  const LINE_H = 16;
+  let y = MTOP;
+
+  function newPage(){ doc.addPage(); y = MTOP; }
+  function ensureSpace(lines=1){ if(y + lines*LINE_H > PAGE_H - MBOT) newPage(); }
+  function writeLine(text, opts={}){
+    const x = opts.x ?? MLEFT;
+    const maxWidth = opts.maxWidth ?? CONTENT_W;
+    const font = opts.font ?? ['helvetica','normal'];
+    const size = opts.size ?? 11;
+    doc.setFont(font[0], font[1]); doc.setFontSize(size);
+    const wrapped = doc.splitTextToSize(String(text ?? '—'), maxWidth);
+    wrapped.forEach(ln=>{ ensureSpace(1); doc.text(ln, x, y); y += LINE_H; });
+  }
+  function writeTitle(text){ doc.setFont('helvetica','bold'); doc.setFontSize(12); ensureSpace(1); doc.text(text, MLEFT, y); y += LINE_H; }
+  function KV(label,value){ writeLine(`${label}: ${value ? value : '—'}`); }
+
+  // Toma de datos
+  const data = getFormData();
+
+  // Encabezado
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text('Historia Clínica Oftalmológica', MLEFT, y); y += LINE_H*1.6;
+
+  // Ficha en 2 columnas
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  const colGap = mm(10), colW = (CONTENT_W - colGap)/2;
+  let yL = y, yR = y;
+  const left = [
+    `Paciente: ${data.paciente||'—'}`,
+    `DNI: ${data.dni||'—'}`,
+    `Fecha: ${data.fecha||'—'}`
+  ];
+  const right = [
+    `Edad: ${data.edad||'—'}`,
+    `Tel: ${data.tel||'—'}`,
+    `Correo: ${data.correo||'—'}`
+  ];
+  left.forEach(t=>{
+    const lines=doc.splitTextToSize(t,colW);
+    lines.forEach(ln=>{ if(yL+LINE_H>PAGE_H-MBOT){ newPage(); yL=MTOP; yR=Math.max(yR,yL);} doc.text(ln, MLEFT, yL); yL+=LINE_H; });
+  });
+  right.forEach(t=>{
+    const lines=doc.splitTextToSize(t,colW);
+    lines.forEach(ln=>{ if(yR+LINE_H>PAGE_H-MBOT){ newPage(); yR=MTOP; yL=Math.max(yL,yR);} doc.text(ln, MLEFT+colW+colGap, yR); yR+=LINE_H; });
+  });
+  y = Math.max(yL,yR) + LINE_H*0.6;
+
+  // Antecedentes
+  writeTitle('Antecedentes');
+  KV('Personales', data.ant_personales);
+  KV('Oculares',   data.ant_oculares);
+  KV('Familiares', data.ant_familiares);
+  y += 6;
+
+  // Anamnesis
+  writeTitle('Anamnesis');
+  KV('Tiempo de enfermedad', data.t_enfermedad);
+  KV('Forma de inicio',      data.forma_inicio);
+  KV('Relato',               data.relato);
+  KV('AV (autorreporte)',    data.av_reporte);
+  KV('Tratamiento actual',   data.tto_actual);
+  y += 6;
+
+  // Examen físico – segmento anterior
+  writeTitle('Examen físico – Segmento anterior (OD)');
+  KV('Párpado',         data.sa_parpado_od);
+  KV('Conjuntiva',      data.sa_conj_od);
+  KV('Esclera',         data.sa_esclera_od);
+  KV('Córnea',          data.sa_cornea_od);
+  KV('Cámara anterior', data.sa_ca_od);
+  KV('Iris-Pupila',     data.sa_iris_od);
+  KV('Mov. oculares',   data.sa_mov_od);
+  KV('Cristalino',      data.sa_crist_od);
+  y += 6;
+
+  writeTitle('Examen físico – Segmento anterior (OI)');
+  KV('Párpado',         data.sa_parpado_oi);
+  KV('Conjuntiva',      data.sa_conj_oi);
+  KV('Esclera',         data.sa_esclera_oi);
+  KV('Córnea',          data.sa_cornea_oi);
+  KV('Cámara anterior', data.sa_ca_oi);
+  KV('Iris-Pupila',     data.sa_iris_oi);
+  KV('Mov. oculares',   data.sa_mov_oi);
+  KV('Cristalino',      data.sa_crist_oi);
+  y += 6;
+
+  // Examen físico – segmento posterior
+  writeTitle('Examen físico – Segmento posterior (OD)');
+  KV('Nervio óptico',     data.sp_no_od);
+  KV('Vasos sanguíneos',  data.sp_vasos_od);
+  KV('Mácula',            data.sp_macula_od);
+  KV('Retina periférica', data.sp_retina_od);
+  y += 6;
+
+  writeTitle('Examen físico – Segmento posterior (OI)');
+  KV('Nervio óptico',     data.sp_no_oi);
+  KV('Vasos sanguíneos',  data.sp_vasos_oi);
+  KV('Mácula',            data.sp_macula_oi);
+  KV('Retina periférica', data.sp_retina_oi);
+  y += 6;
+
+  // Tonometría
+  writeTitle('Tonometría');
+  KV('OD (mmHg)', data.tono_od);
+  KV('OI (mmHg)', data.tono_oi);
+  KV('Método',    data.tono_metodo);
+  y += 6;
+
+  // Auxiliares, Dx, Tratamiento, Órdenes
+  writeTitle('Exámenes auxiliares a solicitar');
+  writeLine(data.auxiliares);
+
+  writeTitle('Diagnóstico (CIE-10)');
+  writeLine(data.diagnostico);
+
+  writeTitle('Tratamiento');
+  writeLine(data.tratamiento);
+
+  writeTitle('Órdenes médicas');
+  writeLine(data.ordenes);
+
+  // Firma más abajo
+  ensureSpace(8);
+  const yLine = y + LINE_H*4;
+  doc.line( MLEFT, yLine, MLEFT + mm(80), yLine );
+  doc.text('Firma / Sello', MLEFT, yLine + 18);
+
+  const nombre = (data.paciente || 'historia').replace(/\s+/g,'_');
+  doc.save(`HC_${nombre}.pdf`);
 }
 </script>
 </body>
